@@ -47,4 +47,8 @@ This is the demo for adding multiple books using model forms
 
 * /store/book/create_with_author
 
+My update is to add multiple services and workers using model formsets
+
+* /store/book/add_services_workers
+
 This is the demo for adding a book with multiple author, both using model forms
