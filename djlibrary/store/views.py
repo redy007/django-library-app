@@ -5,9 +5,12 @@ from .forms import (
     BookFormset,
     BookModelFormset,
     BookModelForm,
-    AuthorFormset
+    AuthorFormset,
+    ServiceFormset,
+    WorkerFormset,
+    ServiceWorkerFormset
 )
-from .models import Book, Author
+from .models import Book, Author, ServicesWorkers, Worker, Service
 
 
 def create_book_normal(request):
@@ -78,4 +81,43 @@ def create_book_with_authors(request):
     return render(request, template_name, {
         'bookform': bookform,
         'formset': formset,
+    })
+
+def add_records_into_two_models(request):
+    template_name = 'store/create_services_with_workers.html'
+    if request.method == 'GET':
+        service_formset = ServiceFormset(queryset=Service.objects.none(), prefix='services')
+        workers_formset = WorkerFormset(queryset=Worker.objects.none(), prefix='workers')
+        # service_workers_formset = ServiceWorkerFormset(queryset=ServicesWorkers.objects.none(), prefix='checkbox')
+    elif request.method == 'POST':
+        service_formset = ServiceFormset(request.POST, prefix='services')
+        workers_formset = WorkerFormset(request.POST, prefix='workers')
+        if service_formset.is_valid() and workers_formset.is_valid():
+            # first save this service, as its reference will be used in `ServicesWorkers record`
+            list_service_id = []
+            service_form_position = 0
+            
+            for services in service_formset:
+                service = services.save()
+                list_service_id.append(service)
+                worker_form_position = 0
+
+                for form in workers_formset:
+                    # so that `worker` instance can be attached.
+                    worker = form.save()                    
+
+                    checkbox = "checkbox_service_" + str(service_form_position) + "_worker_" + str(worker_form_position)
+                    if checkbox in request.POST:
+                        #checkbox has been checked
+                        serviceWorker = ServicesWorkers.objects.create(service=list_service_id[service_form_position], worker=worker, service_enabled='T')
+                    else:
+                        #it is not checked
+                        serviceWorker = ServicesWorkers.objects.create(service=list_service_id[service_form_position], worker=worker, service_enabled='F')
+
+                    worker_form_position += 1
+                service_form_position += 1
+            return redirect('store:book_list')
+    return render(request, template_name, {
+        'service_formset': service_formset,
+        'workers_formset': workers_formset,
     })
