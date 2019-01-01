@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block container %}
+{% if heading %}
+<h3>{{heading}}</h3>
+{% endif %}
+<form class="form-horizontal" method="POST" action="">
+    {% csrf_token %}
+    {{ service_formset.management_form }}
+    {% for service in service_formset %}
+    <div class="row form-row form-row-service spacer">
+        <div class="col-2">
+            <label>{{service.service_name.label}}</label>
+        </div>
+        <div class="col-4">
+            <div class="input-group">
+                {{service.service_name}}
+                <div class="input-group-append">
+                    <button class="btn btn-danger remove-services-row">-</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% endfor %}
+    <div class="row spacer">
+        <div class="col-4 offset-2">
+            <div class="btn btn-secondary btn-block mt-3 add-service-row">
+                Add Service
+            </div>
+        </div>
+    </div>
+    {{ workers_formset.management_form }}
+    {% for form in workers_formset %}
+    <div class="row form-row form-row-worker spacer">
+        <div class="col-2">
+            <label>{{form.worker_name.label}}</label>
+        </div>
+        <div class="col-4">
+            <div class="input-group">
+                {{form.worker_name}}
+                <div class="input-group-append">
+                    <button class="btn btn-danger remove-form-row">-</button>
+                </div>
+            </div>
+            <p class="services">
+        </div>
+    </div>
+    {% endfor %}
+    {{ checkboxes.management_form }}
+    <div class="row spacer">
+        <div class="col-4 offset-2">
+            <div class="btn btn-secondary btn-block add-form-row">
+                Add Worker
+            </div>
+            <button type="submit" class="btn btn-block btn-primary">Create</button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    function updateElementIndex(el, prefix, ndx) {
+        console.log('function updateElementIndex(el, prefix, ndx)');
+        var id_regex = new RegExp('(' + prefix + '-\\d+)');
+        var replacement = prefix + '-' + ndx;
+        if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
+        if (el.id) el.id = el.id.replace(id_regex, replacement);
+        if (el.name) el.name = el.name.replace(id_regex, replacement);
+    }
+
+    function cloneMore(selector, prefix) {
+        var newElement = $(selector).clone(true);
+        var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+        newElement.find(':text').each(function() {
+            var name = $(this).attr('name')
+            if (name) {
+                name = name.replace('-' + (total - 1) + '-', '-' + total + '-');
+                var id = 'id_' + name;
+                $(this).attr({
+                    'name': name,
+                    'id': id
+                }).val('').removeAttr('checked');
+            }
+        });
+        total++;
+        $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+        $(selector).after(newElement);
+        var conditionRow = $('.form-row:last');
+        conditionRow.find('.btn.add-form-row')
+            .removeClass('btn-success').addClass('btn-danger')
+            .removeClass('add-form-row').addClass('remove-form-row')
+            .html('-');
+        return false;
+    }
+
+    function cloneService(selector, prefix) {
+        var newElement = $(selector).clone(true);
+        var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+        newElement.find(':text').each(function() {
+            var name = $(this).attr('name')
+            if (name) {
+                name = name.replace('-' + (total - 1) + '-', '-' + total + '-');
+                var id = 'id_' + name;
+                $(this).attr({
+                    'name': name,
+                    'id': id
+                }).val('').removeAttr('checked');
+            }
+        });
+        total++;
+        $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+        $(selector).after(newElement);
+        var conditionRow = $('.form-row-service:last');
+        conditionRow.find('.btn.add-service-row')
+            .removeClass('btn-success').addClass('btn-danger')
+            .removeClass('add-service-row').addClass('remove-services-row')
+            .html('-');
+        return false;
+    }
+
+    function deleteForm(prefix, btn) {
+        var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+        if (total > 1) {
+            btn.closest('.form-row').remove();
+            var forms = $('.form-row-worker');
+            $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
+            for (var i = 0, formCount = forms.length; i < formCount; i++) {
+                $(forms.get(i)).find(':input').each(function() {
+                    updateElementIndex(this, prefix, i);
+                });
+            }
+        }
+        return false;
+    }
+
+    function deleteService(prefix, btn) {
+        var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+        if (total > 1) {
+            btn.closest('.form-row').remove();
+            var forms = $('.form-row-service');
+            $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
+            for (var i = 0, formCount = forms.length; i < formCount; i++) {
+                $(forms.get(i)).find(':input').each(function() {
+                    updateElementIndex(this, prefix, i);
+                });
+            }
+        }
+        return false;
+    }
+
+    $(document).on('click', '.add-form-row', function(e) {
+        e.preventDefault();
+        cloneMore('.form-row:last', 'workers');
+
+        var checkbox_service = $('.form-row-worker:last').find(':checkbox');
+        if (checkbox_service.length > 0) {
+            $( checkbox_service ).each(function( index ) {
+            name = $( this ).attr('name');
+            name = name.slice(0,-1);
+            name += parseInt($( this ).parent().parent().parent().find('.form-control').attr('id').replace(/[^\d]/g, ''),10);
+            $( this ).attr('name', name);
+            });
+        }
+        return false;
+    });
+    $(document).on('click', '.add-service-row', function(e) {
+        e.preventDefault();
+        cloneService('.form-row-service:last', 'services');
+        return false;
+    });
+    $(document).on('click', '.remove-form-row', function(e) {
+        e.preventDefault();
+        deleteForm('workers', $(this));
+        return false;
+    });
+
+    $(document).on('click', '.remove-services-row', function(e) {
+        e.preventDefault();
+        service_id = parseInt($(this).parent().prev().attr('id').replace(/[^\d]/g, ''),10);
+        $('.form-row-worker').find('#service_' + service_id).parent().remove();
+        var total_services = parseInt($('#id_services-TOTAL_FORMS').val());
+        total_services = total_services - 1;
+        // check if the deleted service isn't the last one
+        if (service_id < total_services) {
+            next_service = service_id + 1;
+            console.log("ahoj: " + service_id);            
+            for (var i = next_service; i <= total_services; i++, service_id++) {
+                console.log( 'i je ' + i);
+                the_input = $('.form-row-worker').find('#service_' + i);
+                prev_input = $('.form-row-worker').find('#service_' + service_id);
+                $( the_input ).attr('id', "service_" + service_id);
+                console.log( $( prev_input ).attr('id'));
+                name = parseInt($( the_input ).parent().parent().parent().find('.form-control').attr('id').replace(/[^\d]/g, ''),10);
+                $( the_input ).attr('name', "checkbox_service_" + service_id + "_worker_");
+                
+                $( the_input ).each(function( index ) {
+                    name = $( this ).attr('name');
+                    name += parseInt($( this ).parent().parent().parent().find('.form-control').attr('id').replace(/[^\d]/g, ''),10);
+                    $( this ).attr('name', name);
+                });
+            }
+        }
+
+        deleteService('services', $(this));
+        return false;
+    });
+
+    $('.form-row-service').on('change','input', function ( service ) {
+        service_id = parseInt($(this).attr('id').replace(/[^\d]/g, ''),10);
+        placed_service = this.value;
+        the_input = $('.form-row-worker').find('#service_' + service_id)
+        console.log(the_input)
+        if (the_input.length > 0) {
+            the_input.next().text(placed_service);
+        }
+        else {
+            var total = $('#id_checkbox-TOTAL_FORMS').val();
+            total++;
+            $('#id_checkbox-TOTAL_FORMS').val(total);
+
+            var formcheck = $("<div/>", {
+            class: "form-check-inline"
+            });
+
+            var checkbox = $("<input/>", {
+            type: "checkbox",
+            class: "form-check-input",
+            id: "service_" + service_id,
+            name: "checkbox_service_" + service_id + "_worker_",
+            });
+            checkbox.prop('checked', true);
+            formcheck.append(checkbox);
+            formcheck.append($("<label>", {
+            class: "control-label",
+            text: this.value,
+            }));
+            formcheck.appendTo('p.services');
+
+            the_input = $('.form-row-worker').find('#service_' + service_id)
+            $( the_input ).each(function( index ) {
+                name = $( this ).attr('name');
+                name += parseInt($( this ).parent().parent().parent().find('.form-control').attr('id').replace(/[^\d]/g, ''),10);
+                $( this ).attr('name', name);
+            });
+        }
+        
+    });
+
+</script>
+{% endblock %}
